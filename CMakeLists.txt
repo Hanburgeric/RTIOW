@@ -28,11 +28,10 @@ FetchContent_MakeAvailable(
 # ======================================================================
 add_executable(
     ${PROJECT_NAME}
+    src/IRayTraceable.h
     src/main.cpp
     src/Ray.cpp src/Ray.h
-        src/Sphere.cpp
-        src/Sphere.h
-        src/IRayTraceable.h
+    src/Sphere.cpp src/Sphere.h
 )
 
 target_link_libraries(
