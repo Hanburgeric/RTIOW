@@ -1,4 +1,5 @@
 // STL
+#include <chrono>
 #include <iostream>
 #include <fstream>
 
@@ -59,12 +60,15 @@ int main()
     };
 
     // Open output image file
-    std::fstream output_image_file{ "image.ppm" };
+    std::ofstream output_image_file{ "image.ppm" };
     if (!output_image_file)
     {
         std::cerr << "Failed to open output image file.\n";
         return 1;
     }
+
+    // Start timer
+    const std::chrono::time_point start_time{ std::chrono::high_resolution_clock::now() };
 
     // Write to output image file
     output_image_file << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -93,6 +97,13 @@ int main()
         }
     }
     std::clog << "\rDone.                 \n";
+
+    // Stop timer
+    const std::chrono::time_point end_time{ std::chrono::high_resolution_clock::now() };
+
+    // Log elapsed time
+    const std::chrono::duration<float> elapsed_time{ end_time - start_time };
+    std::cout << "Render completed in " << elapsed_time.count() << " seconds.\n";
 
     // Close output image file
     output_image_file.close();
