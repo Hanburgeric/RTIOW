@@ -29,12 +29,7 @@ FetchContent_MakeAvailable(
 add_executable(
     ${PROJECT_NAME}
     src/main.cpp
-
-    src/Core/Ray.cpp src/Core/Ray.h
-
-    src/Image/IImageWriter.h
-    src/Image/Image.cpp src/Image/Image.h
-    src/Image/PpmWriter.cpp src/Image/PpmWriter.h
+    src/Ray.cpp src/Ray.h
 )
 
 target_link_libraries(
