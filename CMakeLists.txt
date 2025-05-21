@@ -30,6 +30,9 @@ add_executable(
     ${PROJECT_NAME}
     src/main.cpp
     src/Ray.cpp src/Ray.h
+        src/Sphere.cpp
+        src/Sphere.h
+        src/IRayTraceable.h
 )
 
 target_link_libraries(

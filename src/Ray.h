@@ -25,7 +25,7 @@ public:
     constexpr const glm::vec3& GetDirection() const noexcept { return direction_; }
 
     [[nodiscard]]
-    constexpr glm::vec3 At(float t) const noexcept{ return origin_ + t * direction_; }
+    constexpr glm::vec3 At(float distance) const noexcept{ return origin_ + distance * direction_; }
 
 private:
     Ray(const glm::vec3& origin, const glm::vec3& direction);

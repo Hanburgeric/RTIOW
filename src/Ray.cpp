@@ -25,6 +25,6 @@ Ray::Ray(const glm::vec3& origin, const glm::vec3& direction)
 {
     assert(
         glm::abs(glm::length(direction_) - 1.0F) < 1e-6F
-        && "Ray directions must be normalized."
+        && "Ray direction must have a length of 1."
     );
 }

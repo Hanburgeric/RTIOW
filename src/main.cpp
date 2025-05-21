@@ -7,9 +7,17 @@
 
 // Core
 #include "Ray.h"
+#include "Sphere.h"
 
 glm::vec3 ComputePixelColor(const Ray& ray)
 {
+    const Sphere sphere{ glm::vec3{ 0.0F, 0.0F, -1.0F }, 0.5F };
+    TraceResult trace_result{};
+    if (sphere.TraceRay(trace_result, ray, -100.0F, 100.0F))
+    {
+        return 0.5F * (trace_result.impact_normal + glm::vec3{ 1.0F });
+    }
+
     const float a{ 0.5F * (ray.GetDirection().y + 1.0F) };
     return glm::vec3{
         (1.0F - a) * glm::vec3{ 1.0F } + a * glm::vec3{ 0.5F, 0.7F, 1.0F }
