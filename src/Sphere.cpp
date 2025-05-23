@@ -48,6 +48,8 @@ bool Sphere::TraceRay(
     trace_result.distance = root;
     trace_result.impact_point = ray.At(trace_result.distance);
     trace_result.impact_normal = (trace_result.impact_point - center_) / radius_;
+    trace_result.is_normal_outward =
+        glm::dot(ray.GetDirection(), trace_result.impact_normal) < 0.0F;
 
     return true;
 }

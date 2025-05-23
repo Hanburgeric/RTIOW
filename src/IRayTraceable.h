@@ -11,6 +11,7 @@ struct TraceResult
     glm::vec3 impact_point;
     glm::vec3 impact_normal;
     float distance;
+    bool is_normal_outward;
 };
 
 class IRayTraceable
