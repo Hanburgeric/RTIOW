@@ -23,8 +23,7 @@ bool Sphere::TraceRay(
     const glm::vec3 OriginToCenter{ center_ - ray.GetOrigin() };
     const float h{ glm::dot(ray.GetDirection(), OriginToCenter) };
     const float c{
-        glm::dot(ray.GetDirection(), ray.GetDirection())
-        - radius_ * radius_
+        glm::dot(OriginToCenter, OriginToCenter) - radius_ * radius_
     };
 
     const float discriminant{ h * h - c };

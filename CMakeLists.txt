@@ -31,6 +31,7 @@ add_executable(
     src/IRayTraceable.h
     src/main.cpp
     src/Ray.cpp src/Ray.h
+    src/Scene.cpp src/Scene.h
     src/Sphere.cpp src/Sphere.h
 )
 

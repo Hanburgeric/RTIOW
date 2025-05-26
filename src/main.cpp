@@ -8,13 +8,13 @@
 
 // Core
 #include "Ray.h"
+#include "Scene.h"
 #include "Sphere.h"
 
-glm::vec3 ComputePixelColor(const Ray& ray)
+glm::vec3 ComputeRayColor(const Scene& scene, const Ray& ray)
 {
-    const Sphere sphere{ glm::vec3{ 0.0F, 0.0F, -1.0F }, 0.5F };
     TraceResult trace_result{};
-    if (sphere.TraceRay(trace_result, ray, -100.0F, 100.0F))
+    if (scene.TraceRay(trace_result, ray, 0.0F, std::numeric_limits<float>::infinity()))
     {
         return 0.5F * (trace_result.impact_normal + glm::vec3{ 1.0F });
     }
@@ -27,6 +27,11 @@ glm::vec3 ComputePixelColor(const Ray& ray)
 
 int main()
 {
+    // Scene settings
+    Scene scene{};
+    scene.AddObject(std::make_shared<Sphere>(glm::vec3{ 0.0F, 0.0F, -1.0F }, 0.5F));
+    scene.AddObject(std::make_shared<Sphere>(glm::vec3{ 0.0F, -100.5F, -1.0F }, 100.0F));
+
     // Image settings
     constexpr float aspect_ratio{ 16.0F / 9.0F };
     constexpr std::size_t image_width{ 1280U };
@@ -87,7 +92,7 @@ int main()
                 Ray::FromOriginAndDirection(camera_position, ray_direction)
             };
 
-            const glm::vec3 pixel_color{ ComputePixelColor(ray) };
+            const glm::vec3 pixel_color{ ComputeRayColor(scene, ray) };
 
             const int r{ static_cast<int>(255.999F * pixel_color.r) };
             const int g{ static_cast<int>(255.999F * pixel_color.g) };

@@ -6,7 +6,7 @@
 // src
 #include "IRayTraceable.h"
 
-class Sphere : IRayTraceable
+class Sphere final : public IRayTraceable
 {
 public:
     Sphere() = delete;
@@ -24,7 +24,7 @@ public:
         const Ray& ray,
         float min_distance,
         float max_distance
-    ) const final;
+    ) const override;
 
 private:
     glm::vec3 center_;
