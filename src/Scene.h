@@ -1,28 +1,30 @@
-#pragma once
+#ifndef SCENE_H
+#define SCENE_H
 
 // STL
 #include <memory>
+#include <optional>
 #include <vector>
 
 // Forward declarations
-struct TraceResult;
-class IRayTraceable;
 class Ray;
+class IRayTraceable;
+struct TraceResult;
 
-class Scene
-{
+class Scene {
 public:
-    Scene() = default;
+  Scene() = default;
 
-    void AddObject(const std::shared_ptr<IRayTraceable>& object);
+  void AddObject(const std::shared_ptr<IRayTraceable>& object);
 
-    bool TraceRay(
-        TraceResult& trace_result,
-        const Ray& ray,
-        float min_distance,
-        float max_distance
-    ) const;
+  [[nodiscard]]
+  std::optional<TraceResult> TraceRay(
+    const Ray& ray,
+    float min_distance,
+    float max_distance) const;
 
 private:
-    std::vector<std::shared_ptr<IRayTraceable>> ray_traceable_objects_;
+  std::vector<std::shared_ptr<IRayTraceable>> ray_traceables_;
 };
+
+#endif

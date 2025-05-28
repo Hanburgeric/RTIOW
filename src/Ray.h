@@ -1,36 +1,32 @@
-#pragma once
+#ifndef RAY_H
+#define RAY_H
 
-// GLM
+// glm
 #include "glm/vec3.hpp"
 
-class Ray
-{
+class Ray {
 public:
-    Ray() = delete;
+  Ray() = delete;
+  Ray(const glm::vec3& origin, const glm::vec3& direction);
 
-    static Ray FromOriginAndDirection(
-        const glm::vec3& origin,
-        const glm::vec3& direction
-    );
+  [[nodiscard]]
+  constexpr const glm::vec3& origin() const noexcept {
+    return origin_;
+  }
 
-    static Ray FromOriginAndUnitDirection(
-        const glm::vec3& origin,
-        const glm::vec3& unit_direction
-    );
+  [[nodiscard]]
+  constexpr const glm::vec3& direction() const noexcept {
+    return direction_;
+  }
 
-    [[nodiscard]]
-    constexpr const glm::vec3& GetOrigin() const noexcept { return origin_; }
-
-    [[nodiscard]]
-    constexpr const glm::vec3& GetDirection() const noexcept { return direction_; }
-
-    [[nodiscard]]
-    constexpr glm::vec3 At(float distance) const noexcept{ return origin_ + distance * direction_; }
+  [[nodiscard]]
+  constexpr glm::vec3 At(float distance) const noexcept {
+    return origin_ + distance * direction_;
+  }
 
 private:
-    Ray(const glm::vec3& origin, const glm::vec3& direction);
-
-private:
-    glm::vec3 origin_;
-    glm::vec3 direction_;
+  glm::vec3 origin_;
+  glm::vec3 direction_;
 };
+
+#endif
