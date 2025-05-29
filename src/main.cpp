@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
   // Create random number generator for antialiasing
   std::random_device rd{};
   std::mt19937 gen{ rd() };
-  std::uniform_real_distribution dist{ -0.5F, 0.5F };
+  std::uniform_real_distribution dist{ 0.0F, 1.0F };
 
   // Ray tracing settings
   constexpr size_t samples_per_pixel{ 100 };
@@ -109,12 +109,12 @@ int main(int argc, char* argv[]) {
     std::clog << "\rScanlines remaining: " << image_height - v << ' ' << std::flush;
 
     for (size_t u{ 0U }; u < image_width; ++u) {
-      // Zero-initialize eventual color for the pixel
+      // Zero-initialize final color for the pixel
       glm::vec3 pixel_color{};
 
       // Accumulate color by iterating over subpixel samples
       for (size_t sample{ 0U }; sample < samples_per_pixel; ++sample) {
-        // Generate a random half-pixel offset for sample
+        // Generate a random offset within the pixel for sample
         glm::vec3 sample_offset{ dist(gen), dist(gen), 0.0F };
 
         // Compute current sample position
