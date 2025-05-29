@@ -5,8 +5,10 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <random>
 
 // glm
+#include "glm/common.hpp"
 #include "glm/vec3.hpp"
 
 // src
@@ -16,14 +18,17 @@
 #include "Sphere.h"
 
 glm::vec3 ComputeRayColor(const Scene& scene, const Ray& ray) {
+  // Trace ray against all traceable objects in the scene
   std::optional<TraceResult> trace_result{
     scene.TraceRay(ray, 0.0F, std::numeric_limits<float>::infinity())
   };
 
+  // If anything was hit, color the ray with its impact normal
   if (trace_result.has_value()) {
     return 0.5F * (trace_result.value().impact_normal + glm::vec3{ 1.0F, 1.0F, 1.0F });
   }
 
+  // Otherwise, return a background color gradient
   const float a{
     0.5F * (ray.direction().y + 1.0F)
   };
@@ -33,6 +38,15 @@ glm::vec3 ComputeRayColor(const Scene& scene, const Ray& ray) {
 }
 
 int main(int argc, char* argv[]) {
+  // Create random number generator for antialiasing
+  std::random_device rd{};
+  std::mt19937 gen{ rd() };
+  std::uniform_real_distribution dist{ -0.5F, 0.5F };
+
+  // Ray tracing settings
+  constexpr size_t samples_per_pixel{ 100 };
+  constexpr float weight_per_sample{ 1.0F / static_cast<float>(samples_per_pixel) };
+
   // Scene settings
   Scene scene{};
   scene.AddObject(std::make_shared<Sphere>(
@@ -94,27 +108,40 @@ int main(int argc, char* argv[]) {
     // Log progress
     std::clog << "\rScanlines remaining: " << image_height - v << ' ' << std::flush;
 
-    // Render image
-    for (std::size_t u{ 0U }; u < image_width; ++u) {
-      // Compute current pixel position
-      const glm::vec3 current_pixel_position{
-        upper_left_pixel_position
-        + static_cast<float>(u) * delta_u
-        + static_cast<float>(v) * delta_v
-      };
+    for (size_t u{ 0U }; u < image_width; ++u) {
+      // Zero-initialize eventual color for the pixel
+      glm::vec3 pixel_color{};
 
-      // Compute ray direction and construct a ray with it
-      const glm::vec3 ray_direction{ current_pixel_position - camera_position };
-      const Ray ray{ camera_position, ray_direction };
+      // Accumulate color by iterating over subpixel samples
+      for (size_t sample{ 0U }; sample < samples_per_pixel; ++sample) {
+        // Generate a random half-pixel offset for sample
+        glm::vec3 sample_offset{ dist(gen), dist(gen), 0.0F };
 
-      // Compute ray color by testing it against
-      // all objects in the scene
-      const glm::vec3 ray_color{ ComputeRayColor(scene, ray) };
+        // Compute current sample position
+        const glm::vec3 sample_position{
+          upper_left_pixel_position
+          + (static_cast<float>(u) + sample_offset.x) * delta_u
+          + (static_cast<float>(v) + sample_offset.y) * delta_v
+        };
 
-      // Write ray color to output image file
-      const int r{ static_cast<int>(255.999F * ray_color.r) };
-      const int g{ static_cast<int>(255.999F * ray_color.g) };
-      const int b{ static_cast<int>(255.999F * ray_color.b) };
+        // Compute ray origin and direction for sample
+        const glm::vec3 sample_ray_origin{ camera_position };
+        const glm::vec3 sample_ray_direction{ sample_position - sample_ray_origin };
+
+        // Construct ray for sample
+        const Ray sample_ray{ sample_ray_origin, sample_ray_direction };
+
+        // Compute color for ray
+        const glm::vec3 sample_ray_color{ ComputeRayColor(scene, sample_ray) };
+
+        // Accumulate color
+        pixel_color += sample_ray_color * weight_per_sample;
+      }
+
+      // Clamp and write pixel color to output image file
+      const int r{ static_cast<int>(255.999F * glm::clamp(pixel_color.r, 0.0F, 0.999F)) };
+      const int g{ static_cast<int>(255.999F * glm::clamp(pixel_color.g, 0.0F, 0.999F)) };
+      const int b{ static_cast<int>(255.999F * glm::clamp(pixel_color.b, 0.0F, 0.999F)) };
 
       output_image_file << r << ' ' << g << ' ' << b << '\n';
     }
