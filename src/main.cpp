@@ -1,4 +1,40 @@
 // STL
+#include <string>
+
+// glm
+#include "glm/glm.hpp"
+
+// src
+#include "Application.h"
+
+int main(int argc, char* argv[]) {
+  // Create application
+  Application application{};
+
+  // Set application initialization variables
+  constexpr SDL_InitFlags init_flags{
+    SDL_INIT_VIDEO
+  };
+  const std::string window_title{ "RTIOW" };
+  constexpr int window_width{ 1280 };
+  constexpr int window_height{ 720 };
+  constexpr SDL_WindowFlags window_flags {
+    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
+  };
+
+  // Initialize and run application
+  if (application.Initialize(init_flags,
+                              window_title,
+                              window_width, window_height,
+                              window_flags)) {
+    application.Run();
+  }
+
+  return 0;
+}
+
+/*
+// STL
 #include <chrono>
 #include <cstddef>
 #include <fstream>
@@ -160,3 +196,4 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
+*/
