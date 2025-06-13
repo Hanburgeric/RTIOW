@@ -31,11 +31,12 @@ Application::~Application() {
   Shutdown();
 }
 
-bool Application::Initialize(SDL_InitFlags init_flags,
-                             const std::string& window_title,
-                             int window_width, int window_height,
-                             SDL_WindowFlags window_flags) {
+bool Application::Initialize(const std::string& window_title,
+                             int window_width, int window_height) {
   // Initialize platform
+  constexpr SDL_InitFlags init_flags{
+    SDL_INIT_VIDEO | SDL_INIT_GAMEPAD
+  };
   platform_initialized_ = SDL_Init(init_flags);
   if (!platform_initialized_) {
     spdlog::error(SDL_GetError());
@@ -46,6 +47,9 @@ bool Application::Initialize(SDL_InitFlags init_flags,
   }
 
   // Create window
+  constexpr SDL_WindowFlags window_flags{
+    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
+  };
   window_ = std::unique_ptr<SDL_Window,
                             decltype(&SDL_DestroyWindow)>{
       SDL_CreateWindow(window_title.c_str(),
@@ -201,6 +205,7 @@ void Application::Shutdown() {
     spdlog::info("Application platform shut down.");
   }
 }
+
 void Application::OnQuit() {
   should_quit_ = true;
 }

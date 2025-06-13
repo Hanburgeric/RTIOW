@@ -16,10 +16,8 @@ public:
   Application();
   ~Application();
 
-  bool Initialize(SDL_InitFlags init_flags,
-                  const std::string& window_title,
-                  int window_width, int window_height,
-                  SDL_WindowFlags window_flags);
+  bool Initialize(const std::string& window_title,
+                  int window_width, int window_height);
   void Run();
   void Shutdown();
 

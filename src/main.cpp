@@ -1,6 +1,9 @@
 // STL
 #include <string>
 
+// spdlog
+#include "spdlog/spdlog.h"
+
 // glm
 #include "glm/glm.hpp"
 
@@ -11,24 +14,19 @@ int main(int argc, char* argv[]) {
   // Create application
   Application application{};
 
-  // Set application initialization variables
-  constexpr SDL_InitFlags init_flags{
-    SDL_INIT_VIDEO
-  };
-  const std::string window_title{ "RTIOW" };
+  // Set application window variables
+  const std::string window_title{ "Ray Tracing in One Weekend" };
   constexpr int window_width{ 1280 };
   constexpr int window_height{ 720 };
-  constexpr SDL_WindowFlags window_flags {
-    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
-  };
 
-  // Initialize and run application
-  if (application.Initialize(init_flags,
-                              window_title,
-                              window_width, window_height,
-                              window_flags)) {
-    application.Run();
+  // Initialize application
+  if (!application.Initialize(window_title, window_width, window_height)) {
+    spdlog::error("Failed to initialize application.");
+    return 1;
   }
+
+  // Run application
+  application.Run();
 
   return 0;
 }
