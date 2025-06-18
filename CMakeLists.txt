@@ -20,6 +20,18 @@ find_package(OpenGL REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(
+    EnTT            # v3.15.0
+    GIT_REPOSITORY  https://github.com/skypjack/entt.git
+    GIT_TAG         d4014c74dc3793aba95ae354d6e23a026c2796db
+)
+
+FetchContent_Declare(
+    glad            # v2.0.8
+    GIT_REPOSITORY  https://github.com/Dav1dde/glad.git
+    GIT_TAG         73db193f853e2ee079bf3ca8a64aa2eaf6459043
+)
+
+FetchContent_Declare(
     glm             # 1.0.1
     GIT_REPOSITORY  https://github.com/g-truc/glm.git
     GIT_TAG         0af55ccecd98d4e5a8d1fad7de25ba429d60e863
@@ -32,9 +44,9 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    SDL3            # release-3.2.14
+    SDL3            # release-3.2.16
     GIT_REPOSITORY  https://github.com/libsdl-org/SDL.git
-    GIT_TAG         8d604353a53853fa56d1bdce0363535605ca868f
+    GIT_TAG         c9a6709bd21750f1ad9597be21abace78c6378c9
 )
 
 FetchContent_Declare(
@@ -44,23 +56,23 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(
-    glm
-    imgui
-    SDL3
-    spdlog
+    EnTT glad glm imgui SDL3 spdlog
 )
 
 # ======================================================================
 # Main Executable
 # ======================================================================
+add_subdirectory(${glad_SOURCE_DIR}/cmake ${glad_BINARY_DIR})
+glad_add_library(glad REPRODUCIBLE API gl:core=4.6)
+
 add_executable(
     ${PROJECT_NAME}
-    src/Application.cpp src/Application.h
-    src/IRayTraceable.h
-    src/main.cpp
-    src/Ray.cpp src/Ray.h
-    src/Scene.cpp src/Scene.h
-    src/Sphere.cpp src/Sphere.h
+        src/Application.cpp src/Application.h
+        src/IRayTraceable.h
+        src/main.cpp
+        src/Ray.cpp src/Ray.h
+        src/Scene.cpp src/Scene.h
+        src/Sphere.cpp src/Sphere.h
 )
 
 target_sources(
@@ -95,6 +107,8 @@ target_include_directories(
 
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
+        EnTT::EnTT
+        glad
         glm::glm
         OpenGL::GL
         SDL3::SDL3

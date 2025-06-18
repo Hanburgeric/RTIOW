@@ -2,7 +2,9 @@
 
 // STL
 #include <memory>
-#include <string>
+
+// glad
+#include "glad/gl.h"
 
 // spdlog
 #include "spdlog/spdlog.h"
@@ -15,24 +17,29 @@
 #include "imgui_internal.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
-#include "imgui_impl_opengl3_loader.h"
 
 Application::Application()
     : platform_initialized_{ false }
     , window_{ nullptr, nullptr }
     , renderer_context_{ nullptr, nullptr }
     , gui_context_{ nullptr, nullptr }
-    , gui_platform_initialized_{ nullptr }
-    , gui_renderer_initialized_{ nullptr }
-    , should_quit_{ false } {}
+    , gui_platform_initialized_{ false }
+    , gui_renderer_initialized_{ false }
+    , should_quit_{ false }
+    , first_run_{ true }
+    , show_hierarchy_window_{ true }
+    , show_inspector_window_{ true }
+    , show_rtiow_window_{ true }
+    , show_project_window_{ true }
+    , show_console_window_{ true }
+    , show_scene_window_{ true } {}
 
 Application::~Application() {
   // Shutdown automatically just in case
   Shutdown();
 }
 
-bool Application::Initialize(const std::string& window_title,
-                             int window_width, int window_height) {
+bool Application::Initialize() {
   // Initialize platform
   constexpr SDL_InitFlags init_flags{
     SDL_INIT_VIDEO | SDL_INIT_GAMEPAD
@@ -40,29 +47,33 @@ bool Application::Initialize(const std::string& window_title,
   platform_initialized_ = SDL_Init(init_flags);
   if (!platform_initialized_) {
     spdlog::error(SDL_GetError());
-    spdlog::error("Application platform failed to initialize.");
+    spdlog::error("Editor platform failed to initialize.");
     return false;
   } else {
-    spdlog::info("Application platform initialized.");
+    spdlog::info("Editor platform initialized.");
   }
+
+  // Configure platform
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
   // Create window
   constexpr SDL_WindowFlags window_flags{
-    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
+    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+    | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_HIGH_PIXEL_DENSITY
   };
   window_ = std::unique_ptr<SDL_Window,
                             decltype(&SDL_DestroyWindow)>{
-      SDL_CreateWindow(window_title.c_str(),
-                         window_width, window_height,
-                         window_flags),
+      SDL_CreateWindow("RTIOW", 640, 480, window_flags),
       SDL_DestroyWindow
   };
   if (!window_) {
     spdlog::error(SDL_GetError());
-    spdlog::error("Application failed to create window.");
+    spdlog::error("Editor failed to create window.");
     return false;
   } else {
-    spdlog::info("Application window created.");
+    spdlog::info("Editor window created.");
   }
 
   // Create renderer context
@@ -73,10 +84,16 @@ bool Application::Initialize(const std::string& window_title,
   };
   if (!renderer_context_) {
     spdlog::error(SDL_GetError());
-    spdlog::error("Application failed to create renderer context.");
+    spdlog::error("Editor failed to create renderer context.");
     return false;
   } else {
-    spdlog::info("Application renderer context created.");
+    spdlog::info("Editor renderer context created.");
+  }
+
+  // Load renderer function pointers
+  if (!gladLoadGL(static_cast<GLADloadfunc>(SDL_GL_GetProcAddress))) {
+    spdlog::error("Editor failed to load renderer function pointers.");
+    return false;
   }
 
   // Create GUI context
@@ -86,10 +103,10 @@ bool Application::Initialize(const std::string& window_title,
    ImGui::DestroyContext
   };
   if (!gui_context_) {
-    spdlog::error("Application failed to create GUI context.");
+    spdlog::error("Editor failed to create GUI context.");
     return false;
   } else {
-    spdlog::info("Application GUI context created.");
+    spdlog::info("Editor GUI context created.");
   }
 
   // Configure GUI context
@@ -103,19 +120,19 @@ bool Application::Initialize(const std::string& window_title,
     window_.get(), renderer_context_.get()
   );
   if (!gui_platform_initialized_) {
-    spdlog::info("Application GUI failed to initialize for platform.");
+    spdlog::error("Editor GUI failed to initialize for platform.");
     return false;
   } else {
-    spdlog::info("Application GUI initialized for platform.");
+    spdlog::info("Editor GUI initialized for platform.");
   }
 
   // Initialize GUI for renderer
-  gui_renderer_initialized_ = ImGui_ImplOpenGL3_Init();
+  gui_renderer_initialized_ = ImGui_ImplOpenGL3_Init("#version 460 core");
   if (!gui_renderer_initialized_) {
-    spdlog::info("Application GUI failed to initialize for renderer.");
+    spdlog::error("Editor GUI failed to initialize for renderer.");
     return false;
   } else {
-    spdlog::info("Application GUI initialized for renderer.");
+    spdlog::info("Editor GUI initialized for renderer.");
   }
 
   return true;
@@ -142,11 +159,55 @@ void Application::Run() {
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
-    // TEMPORARY
-    ImGui::ShowDemoWindow();
+    // Create fullscreen window over main viewport
+    if (const ImGuiViewport* main_viewport{ ImGui::GetMainViewport() }) {
+      ImGui::SetNextWindowPos(main_viewport->Pos);
+      ImGui::SetNextWindowSize(main_viewport->Size);
+      ImGui::SetNextWindowViewport(main_viewport->ID);
+    }
 
-    // Update physics
-    // ???
+    constexpr ImGuiWindowFlags host_window_flags{
+      ImGuiWindowFlags_NoResize
+      | ImGuiWindowFlags_NoMove
+      | ImGuiWindowFlags_NoCollapse
+      | ImGuiWindowFlags_NoBackground
+      | ImGuiWindowFlags_NoBringToFrontOnFocus
+      | ImGuiWindowFlags_NoNavFocus
+      | ImGuiWindowFlags_NoDocking
+    };
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0F, 0.0F });
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
+
+    if (ImGui::Begin("HostWindow", nullptr, host_window_flags)) {
+      // Create main menu bar
+      CreateMainMenuBar();
+
+      // Create dock space
+      const ImGuiID main_dock_space_id{ ImGui::GetID("MainDockSpace") };
+      ImGui::DockSpace(main_dock_space_id,
+                       ImVec2{ 0.0F, 0.0F },
+                       ImGuiDockNodeFlags_PassthruCentralNode);
+
+      // Set up default editor dock space layout
+      // if this is the first iteration of the main application loop
+      if (first_run_) {
+        SetupDefaultEditorDockSpaceLayout(main_dock_space_id);
+        first_run_ = false;
+      }
+    }
+    ImGui::PopStyleVar(3);
+    ImGui::End();
+
+    // Create editor window layout
+    if (show_hierarchy_window_) { CreateHierarchyWindow(); }
+    if (show_inspector_window_) { CreateInspectorWindow(); }
+    if (show_rtiow_window_) { CreateRtiowWindow(); }
+    if (show_project_window_) { CreateProjectWindow(); }
+    if (show_console_window_) { CreateConsoleWindow(); }
+    if (show_scene_window_) { CreateSceneWindow(); }
+    if (show_game_window_) { CreateGameWindow(); }
 
     // Render
     // Clear buffer
@@ -156,9 +217,15 @@ void Application::Run() {
     // Render GUI
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault();
-    SDL_GL_MakeCurrent(window_.get(), renderer_context_.get());
+
+    // Update and render platform windows if GUI multi-viewports are enabled
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+
+      // Make renderer context current again
+      SDL_GL_MakeCurrent(window_.get(), renderer_context_.get());
+    }
 
     // Swap buffers
     SDL_GL_SwapWindow(window_.get());
@@ -170,39 +237,39 @@ void Application::Shutdown() {
   if (gui_renderer_initialized_) {
     ImGui_ImplOpenGL3_Shutdown();
     gui_renderer_initialized_ = false;
-    spdlog::info("Application GUI shutdown for renderer.");
+    spdlog::info("Editor GUI shutdown for renderer.");
   }
 
   // Shutdown GUI for platform
   if (gui_platform_initialized_) {
     ImGui_ImplSDL3_Shutdown();
     gui_platform_initialized_ = false;
-    spdlog::info("Application GUI shutdown for platform.");
+    spdlog::info("Editor GUI shutdown for platform.");
   }
 
   // Destroy GUI context
   if (gui_context_) {
     gui_context_.reset();
-    spdlog::info("Application GUI context destroyed.");
+    spdlog::info("Editor GUI context destroyed.");
   }
 
   // Destroy renderer context
   if (renderer_context_) {
     renderer_context_.reset();
-    spdlog::info("Application renderer context destroyed.");
+    spdlog::info("Editor renderer context destroyed.");
   }
 
   // Destroy window
   if (window_) {
     window_.reset();
-    spdlog::info("Application window destroyed.");
+    spdlog::info("Editor window destroyed.");
   }
 
   // Shutdown platform
   if (platform_initialized_) {
     SDL_Quit();
     platform_initialized_ = false;
-    spdlog::info("Application platform shut down.");
+    spdlog::info("Editor platform shut down.");
   }
 }
 
@@ -210,9 +277,171 @@ void Application::OnQuit() {
   should_quit_ = true;
 }
 
-void Application::OnWindowResized() {
+void Application::OnWindowResized() const {
   int window_width{};
   int window_height{};
-  SDL_GetWindowSize(window_.get(), &window_width, &window_height);
+  SDL_GetWindowSizeInPixels(window_.get(), &window_width, &window_height);
   glViewport(0, 0, window_width, window_height);
+}
+
+void Application::CreateMainMenuBar() {
+  // Main menu bar
+  if (ImGui::BeginMainMenuBar()) {
+    // File
+    if (ImGui::BeginMenu("File")) {
+      if (ImGui::MenuItem("New Project")) {
+        // ???
+      }
+      if (ImGui::MenuItem("Open Project")) {
+        // ???
+      }
+      if (ImGui::MenuItem("Save Project")) {
+        // ???
+      }
+      ImGui::Separator();
+      if (ImGui::MenuItem("Exit")) {
+        should_quit_ = true;
+      }
+
+      ImGui::EndMenu();
+    }
+
+    // Edit
+    if (ImGui::BeginMenu("Edit")) {
+      if (ImGui::MenuItem("Engine Settings")) {
+        // ???
+      }
+      if (ImGui::MenuItem("Editor Settings")) {
+        // ???
+      }
+      if (ImGui::MenuItem("Project Settings")) {
+        // ???
+      }
+
+      ImGui::EndMenu();
+    }
+
+    // Window
+    if (ImGui::BeginMenu("Window")) {
+      if (ImGui::MenuItem("Hierarchy", nullptr, &show_hierarchy_window_)) {
+        // ???
+      }
+      if (ImGui::MenuItem("Inspector", nullptr, &show_inspector_window_)) {
+        // ???
+      }
+      if (ImGui::MenuItem("RTIOW", nullptr, &show_rtiow_window_)) {
+        // ???
+      }
+      if (ImGui::MenuItem("Project", nullptr, &show_project_window_)) {
+        // ???
+      }
+      if (ImGui::MenuItem("Console", nullptr, &show_console_window_)) {
+        // ???
+      }
+      if (ImGui::MenuItem("Scene", nullptr, &show_scene_window_)) {
+        // ???
+      }
+      if (ImGui::MenuItem("Game", nullptr, &show_game_window_)) {
+        // ???
+      }
+
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndMainMenuBar();
+  }
+}
+
+void Application::SetupDefaultEditorDockSpaceLayout(ImGuiID dock_space_id) {
+  // Remove existing layout
+  ImGui::DockBuilderRemoveNode(dock_space_id);
+  ImGui::DockBuilderAddNode(dock_space_id, ImGuiDockNodeFlags_DockSpace);
+  if (const ImGuiViewport* main_viewport{ ImGui::GetMainViewport() }) {
+    ImGui::DockBuilderSetNodeSize(dock_space_id, main_viewport->Size);
+  }
+
+  // Split main dock space into left and right sides
+  ImGuiID dock_left;
+  ImGuiID dock_right;
+  ImGui::DockBuilderSplitNode(dock_space_id,
+                              ImGuiDir_Left, 0.75F,
+                              &dock_left, &dock_right);
+
+  // Split left side vertically; top for hierarchy, bottom for project/console
+  ImGuiID dock_hierarchy;
+  ImGuiID dock_project_console;
+  ImGui::DockBuilderSplitNode(dock_left,
+                              ImGuiDir_Up, 0.7F,
+                              &dock_hierarchy, &dock_project_console);
+
+  // Split right side vertically; top for inspector, bottom for RTIOW
+  ImGuiID dock_inspector;
+  ImGuiID dock_rtiow;
+  ImGui::DockBuilderSplitNode(dock_right,
+                              ImGuiDir_Up, 0.5F,
+                              &dock_inspector, &dock_rtiow);
+
+  // Split remaining center area horizontally for scene/game
+  ImGuiID dock_scene_game;
+  ImGui::DockBuilderSplitNode(dock_hierarchy,
+                              ImGuiDir_Right, 0.75F,
+                              &dock_scene_game, &dock_hierarchy);
+
+  // Dock windows to respective nodes
+  ImGui::DockBuilderDockWindow("Hierarchy", dock_hierarchy);
+  ImGui::DockBuilderDockWindow("Inspector", dock_inspector);
+  ImGui::DockBuilderDockWindow("RTIOW", dock_rtiow);
+  ImGui::DockBuilderDockWindow("Project", dock_project_console);
+  ImGui::DockBuilderDockWindow("Console", dock_project_console);
+  ImGui::DockBuilderDockWindow("Scene", dock_scene_game);
+  ImGui::DockBuilderDockWindow("Game", dock_scene_game);
+}
+
+void Application::CreateHierarchyWindow() {
+  if (ImGui::Begin("Hierarchy", &show_hierarchy_window_)) {
+    // ???
+  }
+  ImGui::End();
+}
+
+void Application::CreateInspectorWindow() {
+  if (ImGui::Begin("Inspector", &show_inspector_window_)) {
+    // ???
+  }
+  ImGui::End();
+}
+
+void Application::CreateRtiowWindow() {
+  if (ImGui::Begin("RTIOW", &show_rtiow_window_)) {
+    // ???
+  }
+  ImGui::End();
+}
+
+void Application::CreateProjectWindow() {
+  if (ImGui::Begin("Project", &show_project_window_)) {
+    // ???
+  }
+  ImGui::End();
+}
+
+void Application::CreateConsoleWindow() {
+  if (ImGui::Begin("Console", &show_console_window_)) {
+    // ???
+  }
+  ImGui::End();
+}
+
+void Application::CreateSceneWindow() {
+  if (ImGui::Begin("Scene", &show_scene_window_)) {
+    // ???
+  }
+  ImGui::End();
+}
+
+void Application::CreateGameWindow() {
+  if (ImGui::Begin("Game", &show_game_window_)) {
+    // ???
+  }
+  ImGui::End();
 }

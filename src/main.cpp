@@ -1,31 +1,18 @@
-// STL
-#include <string>
-
 // spdlog
 #include "spdlog/spdlog.h"
-
-// glm
-#include "glm/glm.hpp"
 
 // src
 #include "Application.h"
 
 int main(int argc, char* argv[]) {
-  // Create application
+  // Create and initialize application
   Application application{};
-
-  // Set application window variables
-  const std::string window_title{ "Ray Tracing in One Weekend" };
-  constexpr int window_width{ 1280 };
-  constexpr int window_height{ 720 };
-
-  // Initialize application
-  if (!application.Initialize(window_title, window_width, window_height)) {
-    spdlog::error("Failed to initialize application.");
+  if (!application.Initialize()) {
+    spdlog::error("Editor failed to initialize.");
     return 1;
   }
 
-  // Run application
+  // Run editor
   application.Run();
 
   return 0;
